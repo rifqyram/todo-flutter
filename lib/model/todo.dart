@@ -1,6 +1,7 @@
 class Todo {
+  int? id;
   String? todo;
-  bool? isComplete;
+  bool isComplete;
 
-  Todo({this.todo, this.isComplete});
+  Todo({this.id, this.todo, required this.isComplete});
 }

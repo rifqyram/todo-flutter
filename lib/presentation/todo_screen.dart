@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:todo_flutter/model/todo.dart';
 
 class TodoScreen extends StatefulWidget {
@@ -9,10 +10,47 @@ class TodoScreen extends StatefulWidget {
 }
 
 class _TodoScreenState extends State<TodoScreen> {
+  int? id;
   bool isComplete = false;
   var todoController = TextEditingController();
 
-  final List<Todo> _todos = [Todo(todo: 'Makan', isComplete: false)];
+  final List<Todo> _todos = [Todo(id: 1, todo: 'Makan', isComplete: false)];
+
+  void clearForm() {
+    id = null;
+    isComplete = false;
+    todoController.clear();
+  }
+
+  void onSubmit() {
+    setState(() {
+      if (todoController.text.isNotEmpty && id == null) {
+        _todos.add(Todo(
+            id: _todos.length < 1 ? 1 : _todos[_todos.length - 1].id! + 1,
+            todo: todoController.text,
+            isComplete: isComplete));
+        clearForm();
+      } else if (todoController.text.isNotEmpty && id != null) {
+        var todoIdx =
+        _todos.indexWhere((element) => element.id == id);
+        _todos[todoIdx] = Todo(
+            id: id,
+            isComplete: isComplete,
+            todo: todoController.text);
+        clearForm();
+      } else {
+        showSnackBar(message: 'Todo cannot be empty!', actionLabel:  'Close');
+      }
+    });
+  }
+
+  void showSnackBar({required String message, required String actionLabel, Function? callback}) {
+    var snackBar = SnackBar(
+        content: Text(message),
+        action: SnackBarAction(
+            label: actionLabel, onPressed: () => callback));
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,22 +84,26 @@ class _TodoScreenState extends State<TodoScreen> {
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: ElevatedButton(
-                onPressed: () {
-                  setState(() {
-                    if (todoController.text.isNotEmpty) {
-                      _todos.add(Todo(
-                          todo: todoController.text, isComplete: isComplete));
-                    } else {
-                      var snackBar = SnackBar(
-                        content: const Text('Todo cannot be empty!'),
-                        action: SnackBarAction(label: 'Close', onPressed: () {})
-                      );
-                      ScaffoldMessenger.of(context).showSnackBar(snackBar);
-                    }
-                  });
-                },
-                child: const Text('Save'),
+              child: Row(
+                children: [
+                  ElevatedButton(
+                    onPressed: () => onSubmit(),
+                    child: const Text('Save'),
+                  ),
+                  const SizedBox(
+                    width: 16,
+                  ),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(primary: Colors.red),
+                    onPressed: () {
+                      setState(() {
+                        todoController.clear();
+                        isComplete = false;
+                      });
+                    },
+                    child: const Text('Clear'),
+                  )
+                ],
               ),
             ),
             const Divider(height: 24),
@@ -78,29 +120,44 @@ class _TodoScreenState extends State<TodoScreen> {
             Expanded(
               child: ListView.builder(
                 itemCount: _todos.length,
-                itemBuilder: (context, index) => Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Row(
-                        children: [
-                          const SizedBox(width: 16),
-                          Text(_todos[index].todo!)
-                        ],
+                itemBuilder: (context, index) => InkWell(
+                  onTap: () {
+                    setState(() {
+                      id = _todos[index].id;
+                      todoController.text = _todos[index].todo!;
+                      isComplete = _todos[index].isComplete;
+                    });
+                  },
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Row(
+                          children: [
+                            const SizedBox(width: 16),
+                            Text(
+                              '${_todos[index].todo}',
+                              style: TextStyle(
+                                  decoration: _todos[index].isComplete
+                                      ? TextDecoration.lineThrough
+                                      : TextDecoration.none),
+                            )
+                          ],
+                        ),
                       ),
-                    ),
-                    IconButton(
-                      onPressed: () => setState(() {
-                        _todos.removeAt(index);
-                      }),
-                      icon: const Icon(
-                        Icons.delete,
-                        color: Colors.redAccent,
-                      ),
-                    )
-                  ],
+                      IconButton(
+                        onPressed: () => setState(() {
+                          _todos.removeAt(index);
+                        }),
+                        icon: const Icon(
+                          Icons.delete,
+                          color: Colors.redAccent,
+                        ),
+                      )
+                    ],
+                  ),
                 ),
               ),
             ),
