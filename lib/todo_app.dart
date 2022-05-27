@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:todo_flutter/presentation/todo_screen.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:todo_flutter/presentation/splash_screen.dart';
 
 class TodoApp extends StatelessWidget {
   const TodoApp({Key? key}) : super(key: key);
@@ -9,9 +10,11 @@ class TodoApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        primarySwatch: Colors.blue
+        primarySwatch: Colors.amber,
+        textTheme: GoogleFonts.poppinsTextTheme(Theme.of(context).textTheme),
       ),
-      home: const TodoScreen(),
+      home: const SplashScreen(),
     );
   }
 }
+

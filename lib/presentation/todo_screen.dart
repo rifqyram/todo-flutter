@@ -1,166 +1,233 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:intl/intl.dart';
 import 'package:todo_flutter/model/todo.dart';
+import 'package:todo_flutter/presentation/todo_form.dart';
 
 class TodoScreen extends StatefulWidget {
-  const TodoScreen({Key? key}) : super(key: key);
+
+  String? name = "There";
+
+  TodoScreen({Key? key, this.name}) : super(key: key);
 
   @override
   State<TodoScreen> createState() => _TodoScreenState();
 }
 
 class _TodoScreenState extends State<TodoScreen> {
-  int? id;
-  bool isComplete = false;
-  var todoController = TextEditingController();
+  List<Todo> todos = [
+    Todo(
+      id: 1,
+      todo: 'Makan',
+      description: 'Makan Nasi',
+      isComplete: false,
+    )
+  ];
 
-  final List<Todo> _todos = [Todo(id: 1, todo: 'Makan', isComplete: false)];
-
-  void clearForm() {
-    id = null;
-    isComplete = false;
-    todoController.clear();
+  Widget buildFloatingActionButton() {
+    return FloatingActionButton(
+      onPressed: () async {
+        var result = await Navigator.push(context,
+            MaterialPageRoute(builder: ((context) => TodoForm())));
+        var todo = result as Todo;
+        onSaveTodo(todo);
+      },
+      backgroundColor: Colors.white,
+      child: const Icon(
+        Icons.add,
+      ),
+    );
   }
 
-  void onSubmit() {
-    setState(() {
-      if (todoController.text.isNotEmpty && id == null) {
-        _todos.add(Todo(
-            id: _todos.length < 1 ? 1 : _todos[_todos.length - 1].id! + 1,
-            todo: todoController.text,
-            isComplete: isComplete));
-        clearForm();
-      } else if (todoController.text.isNotEmpty && id != null) {
-        var todoIdx =
-        _todos.indexWhere((element) => element.id == id);
-        _todos[todoIdx] = Todo(
-            id: id,
-            isComplete: isComplete,
-            todo: todoController.text);
-        clearForm();
-      } else {
-        showSnackBar(message: 'Todo cannot be empty!', actionLabel:  'Close');
-      }
-    });
+  void onSaveTodo(Todo? todo) {
+    if (todo != null && todo.id == null) {
+      todo.id = todos.length < 1 ? 1 : todos[todos.length - 1].id! + 1;
+      setState(() {
+        todos.add(todo);
+      });
+    } else {
+      var idxTodo = todos.indexWhere((element) => element.id == todo?.id);
+      setState(() {
+        todos[idxTodo] = todo!;
+      });
+    }
   }
 
-  void showSnackBar({required String message, required String actionLabel, Function? callback}) {
-    var snackBar = SnackBar(
-        content: Text(message),
-        action: SnackBarAction(
-            label: actionLabel, onPressed: () => callback));
-    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+  Widget bottomNavBarGenerate() {
+    return BottomAppBar(
+      shape: const CircularNotchedRectangle(),
+      child: Row(
+        children: [
+          Container(
+            height: 50,
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget buildDateSection() {
+    List<String> dates = DateFormat('y-MMMM-EEEE-d').format(DateTime.now()).split('-');
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
+      child: Row(
+        children: [
+          Text(dates[3],
+            style: const TextStyle(
+                fontSize: 48, color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(left: 16),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(dates[2],
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18),
+                ),
+                Text(
+                  '${dates[1]} ${dates[0]}',
+                  style: const TextStyle(color: Colors.white, fontSize: 18),
+                )
+              ],
+            ),
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget buildIdentitySection() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const CircleAvatar(
+            backgroundColor: Colors.white,
+            child: SizedBox(
+              height: 60,
+              width: 60,
+            ),
+          ),
+          Text(
+            'Hi, ${widget.name}',
+            style: const TextStyle(color: Colors.white, fontSize: 18),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget buildTodoSection() {
+    return Container(
+      margin: const EdgeInsets.only(left: 24, right: 24, top: 16),
+      width: double.infinity,
+      height: MediaQuery.of(context).size.height / 2,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        color: Colors.white,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(top: 16, left: 24, bottom: 8),
+            child: Text(
+              'Today',
+              style: TextStyle(
+                  color: Color(0xFF8987AB),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16),
+            ),
+          ),
+          Flexible(
+            child: ListView.builder(
+                itemCount: todos.length,
+                itemBuilder: ((context, index) => Slidable(
+                      endActionPane: ActionPane(
+                        motion: const BehindMotion(),
+                        children: [
+                          SlidableAction(
+                            onPressed: (context) {
+                              setState(() {
+                                todos.removeAt(index);
+                              });
+                            },
+                            icon: Icons.delete,
+                            backgroundColor: Colors.red,
+                          )
+                        ],
+                      ),
+                      child: GestureDetector(
+                        onTap: () async {
+                          var result = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => TodoForm(
+                                  id: todos[index].id,
+                                  todo: todos[index].todo,
+                                  content: todos[index].description,
+                                ),
+                              ));
+                          var todo = result as Todo;
+                          onSaveTodo(todo);
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 16),
+                          child: Row(
+                            children: [
+                              Checkbox(
+                                  value: todos[index].isComplete,
+                                  onChanged: (val) {
+                                    setState(() {
+                                      todos[index].isComplete = val!;
+                                    });
+                                  }),
+                              Text(
+                                '${todos[index].todo}',
+                                style: TextStyle(
+                                    color: todos[index].isComplete
+                                        ? const Color(0xFFD7D7E0)
+                                        : const Color(0xFF8987AB),
+                                    fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ))),
+          )
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      floatingActionButton: buildFloatingActionButton(),
+      bottomNavigationBar: bottomNavBarGenerate(),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      backgroundColor: Colors.amber.shade600,
       body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        bottom: true,
+        child: ListView(
           children: [
-            Container(
-              margin: const EdgeInsets.only(top: 24, left: 16, right: 16),
-              child: TextField(
-                decoration: const InputDecoration(
-                  label: Text('Todo'),
-                ),
-                controller: todoController,
+            buildIdentitySection(),
+            buildDateSection(),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24),
+              child: Text(
+                'While there is life there is hope',
+                style: TextStyle(color: Colors.white),
               ),
             ),
-            Container(
-              margin: const EdgeInsets.only(top: 8, left: 8, right: 8),
-              child: CheckboxListTile(
-                title: const Text('Completed'),
-                contentPadding: EdgeInsets.zero,
-                value: isComplete,
-                controlAffinity: ListTileControlAffinity.leading,
-                onChanged: (value) {
-                  setState(() {
-                    isComplete = value!;
-                  });
-                },
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  ElevatedButton(
-                    onPressed: () => onSubmit(),
-                    child: const Text('Save'),
-                  ),
-                  const SizedBox(
-                    width: 16,
-                  ),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(primary: Colors.red),
-                    onPressed: () {
-                      setState(() {
-                        todoController.clear();
-                        isComplete = false;
-                      });
-                    },
-                    child: const Text('Clear'),
-                  )
-                ],
-              ),
-            ),
-            const Divider(height: 24),
-            Container(
-              margin: const EdgeInsets.only(top: 8, bottom: 16),
-              child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.0),
-                child: Text(
-                  'List Todo',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
-            Expanded(
-              child: ListView.builder(
-                itemCount: _todos.length,
-                itemBuilder: (context, index) => InkWell(
-                  onTap: () {
-                    setState(() {
-                      id = _todos[index].id;
-                      todoController.text = _todos[index].todo!;
-                      isComplete = _todos[index].isComplete;
-                    });
-                  },
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: Row(
-                          children: [
-                            const SizedBox(width: 16),
-                            Text(
-                              '${_todos[index].todo}',
-                              style: TextStyle(
-                                  decoration: _todos[index].isComplete
-                                      ? TextDecoration.lineThrough
-                                      : TextDecoration.none),
-                            )
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () => setState(() {
-                          _todos.removeAt(index);
-                        }),
-                        icon: const Icon(
-                          Icons.delete,
-                          color: Colors.redAccent,
-                        ),
-                      )
-                    ],
-                  ),
-                ),
-              ),
-            ),
+            buildTodoSection()
           ],
         ),
       ),
