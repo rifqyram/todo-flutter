@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:intl/intl.dart';
 import 'package:todo_flutter/model/todo.dart';
-import 'package:todo_flutter/presentation/todo_form.dart';
 
 class TodoScreen extends StatefulWidget {
 
@@ -27,8 +26,7 @@ class _TodoScreenState extends State<TodoScreen> {
   Widget buildFloatingActionButton() {
     return FloatingActionButton(
       onPressed: () async {
-        var result = await Navigator.push(context,
-            MaterialPageRoute(builder: ((context) => TodoForm())));
+        var result = await Navigator.of(context).pushNamed('/form');
         var todo = result as Todo;
         onSaveTodo(todo);
       },
@@ -165,15 +163,7 @@ class _TodoScreenState extends State<TodoScreen> {
                       ),
                       child: GestureDetector(
                         onTap: () async {
-                          var result = await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => TodoForm(
-                                  id: todos[index].id,
-                                  todo: todos[index].todo,
-                                  content: todos[index].description,
-                                ),
-                              ));
+                          var result = await Navigator.of(context).pushNamed('/form', arguments: todos[index]);
                           var todo = result as Todo;
                           onSaveTodo(todo);
                         },
