@@ -30,6 +30,13 @@ class _TodoFormState extends State<TodoForm> {
     }
   }
 
+
+  @override
+  void dispose() {
+    super.dispose();
+    TodoDatabase.instance.close();
+  }
+
   Future<bool> onWillPop() async {
     final todo = Todo(
         id: widget.id,
