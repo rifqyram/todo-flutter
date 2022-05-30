@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:intl/intl.dart';
-import 'package:todo_flutter/model/todo.dart';
+import 'package:todo_flutter/data/db/todo_database.dart';
+
+import '../data/model/todo.dart';
 
 class TodoScreen extends StatefulWidget {
-
   String? name = "There";
 
   TodoScreen({Key? key, this.name}) : super(key: key);
@@ -14,41 +15,42 @@ class TodoScreen extends StatefulWidget {
 }
 
 class _TodoScreenState extends State<TodoScreen> {
-  List<Todo> todos = [
-    Todo(
-      id: 1,
-      todo: 'Makan',
-      description: 'Makan Nasi',
-      isComplete: false,
-    )
-  ];
+  late List<Todo> todos;
+  bool isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    refreshTodos();
+  }
+
+  @override
+  void dispose() async {
+    TodoDatabase.instance.close();
+    super.dispose();
+  }
+
+  void refreshTodos() async {
+    setState(() => isLoading = true);
+    todos = await TodoDatabase.instance.findAll();
+    setState(() => isLoading = false);
+  }
+
+  Todo getTodoById(int index) {
+    return todos.singleWhere((todo) => todo.id == todos[index].id);
+  }
 
   Widget buildFloatingActionButton() {
     return FloatingActionButton(
       onPressed: () async {
-        var result = await Navigator.of(context).pushNamed('/form');
-        var todo = result as Todo;
-        onSaveTodo(todo);
+        await Navigator.of(context).pushNamed('/form');
+        refreshTodos();
       },
       backgroundColor: Colors.white,
       child: const Icon(
         Icons.add,
       ),
     );
-  }
-
-  void onSaveTodo(Todo? todo) {
-    if (todo != null && todo.id == null) {
-      todo.id = todos.length < 1 ? 1 : todos[todos.length - 1].id! + 1;
-      setState(() {
-        todos.add(todo);
-      });
-    } else {
-      var idxTodo = todos.indexWhere((element) => element.id == todo?.id);
-      setState(() {
-        todos[idxTodo] = todo!;
-      });
-    }
   }
 
   Widget bottomNavBarGenerate() {
@@ -65,13 +67,15 @@ class _TodoScreenState extends State<TodoScreen> {
   }
 
   Widget buildDateSection() {
-    List<String> dates = DateFormat('y-MMMM-EEEE-d').format(DateTime.now()).split('-');
+    List<String> dates =
+        DateFormat('y-MMMM-EEEE-d').format(DateTime.now()).split('-');
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
       child: Row(
         children: [
-          Text(dates[3],
+          Text(
+            dates[3],
             style: const TextStyle(
                 fontSize: 48, color: Colors.white, fontWeight: FontWeight.bold),
           ),
@@ -81,7 +85,8 @@ class _TodoScreenState extends State<TodoScreen> {
               mainAxisAlignment: MainAxisAlignment.start,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(dates[2],
+                Text(
+                  dates[2],
                   style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -130,7 +135,7 @@ class _TodoScreenState extends State<TodoScreen> {
         borderRadius: BorderRadius.circular(8),
         color: Colors.white,
       ),
-      child: Column(
+      child: isLoading ? const Center(child: CircularProgressIndicator()) : todos.isEmpty ? const Center(child: Text('Task is Empty', style: TextStyle(fontSize: 18),)) : Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Padding(
@@ -147,50 +152,52 @@ class _TodoScreenState extends State<TodoScreen> {
             child: ListView.builder(
                 itemCount: todos.length,
                 itemBuilder: ((context, index) => Slidable(
-                      endActionPane: ActionPane(
-                        motion: const BehindMotion(),
+                  endActionPane: ActionPane(
+                    motion: const BehindMotion(),
+                    children: [
+                      SlidableAction(
+                        onPressed: (context) async {
+                          final todo = getTodoById(index);
+                          await TodoDatabase.instance.delete(todo.id!);
+                          refreshTodos();
+                        },
+                        icon: Icons.delete,
+                        backgroundColor: Colors.red,
+                      )
+                    ],
+                  ),
+                  child: GestureDetector(
+                    onTap: () async {
+                      final todo = getTodoById(index);
+                      await Navigator.of(context).pushNamed('/form',
+                          arguments:
+                          await TodoDatabase.instance.get(todo.id!));
+                      refreshTodos();
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 16),
+                      child: Row(
                         children: [
-                          SlidableAction(
-                            onPressed: (context) {
-                              setState(() {
-                                todos.removeAt(index);
-                              });
-                            },
-                            icon: Icons.delete,
-                            backgroundColor: Colors.red,
-                          )
+                          Checkbox(
+                              value: todos[index].isComplete,
+                              onChanged: (val) {
+                                setState(() {
+                                  todos[index].isComplete = val!;
+                                });
+                              }),
+                          Text(
+                            '${todos[index].todo}',
+                            style: TextStyle(
+                                color: todos[index].isComplete
+                                    ? const Color(0xFFD7D7E0)
+                                    : const Color(0xFF8987AB),
+                                fontWeight: FontWeight.bold),
+                          ),
                         ],
                       ),
-                      child: GestureDetector(
-                        onTap: () async {
-                          var result = await Navigator.of(context).pushNamed('/form', arguments: todos[index]);
-                          var todo = result as Todo;
-                          onSaveTodo(todo);
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.only(left: 16),
-                          child: Row(
-                            children: [
-                              Checkbox(
-                                  value: todos[index].isComplete,
-                                  onChanged: (val) {
-                                    setState(() {
-                                      todos[index].isComplete = val!;
-                                    });
-                                  }),
-                              Text(
-                                '${todos[index].todo}',
-                                style: TextStyle(
-                                    color: todos[index].isComplete
-                                        ? const Color(0xFFD7D7E0)
-                                        : const Color(0xFF8987AB),
-                                    fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ))),
+                    ),
+                  ),
+                ))),
           )
         ],
       ),

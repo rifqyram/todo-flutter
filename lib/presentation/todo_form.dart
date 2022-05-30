@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:todo_flutter/model/todo.dart';
+import 'package:todo_flutter/data/db/todo_database.dart';
+
+import '../data/model/todo.dart';
 
 class TodoForm extends StatefulWidget {
   int? id;
@@ -19,7 +21,6 @@ class _TodoFormState extends State<TodoForm> {
   @override
   void initState() {
     super.initState();
-
     if (widget.id != null) {
       todoController.text = widget.todo!;
       contentController.text = widget.content!;
@@ -30,24 +31,25 @@ class _TodoFormState extends State<TodoForm> {
   }
 
   Future<bool> onWillPop() async {
+    final todo = Todo(
+        id: widget.id,
+        todo: todoController.text,
+        description: contentController.text,
+        isComplete: false);
+
     if (todoController.text.isEmpty && contentController.text.isEmpty) {
-      Navigator.pop(
-          context,
-          Todo(
-              id: null,
-              todo: '(Untitled) Todo',
-              description: 'Content',
-              isComplete: false));
-      return true;
+      Navigator.pop(context);
+      TodoDatabase.instance.insert(Todo(
+          todo: '(Untitled) Todo', description: 'Content', isComplete: false));
+      return false;
     } else {
-      Navigator.pop(
-          context,
-          Todo(
-              id: widget.id,
-              todo: todoController.text,
-              description: contentController.text,
-              isComplete: false));
-      return true;
+      Navigator.pop(context);
+      if (widget.id != null) {
+        TodoDatabase.instance.update(todo);
+      } else {
+        TodoDatabase.instance.insert(todo);
+      }
+      return false;
     }
   }
 

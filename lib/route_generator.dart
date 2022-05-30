@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:todo_flutter/presentation/todo_form.dart';
 import 'package:todo_flutter/presentation/todo_screen.dart';
 
-import 'model/todo.dart';
+import 'data/model/todo.dart';
+
 
 class RouteGenerator {
   static Route<dynamic>? generateRoute(RouteSettings settings) {
